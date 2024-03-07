@@ -1,2 +1,2 @@
-# Program na zasadaci poriadok pre skolu 1sg
+# ZaverecnaPracaMesaros24
 Zaverecna praca z informatiky za rok 2024
