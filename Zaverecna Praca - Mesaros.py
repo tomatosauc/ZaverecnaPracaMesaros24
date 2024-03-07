@@ -1,5 +1,6 @@
 # Importovanie modulov
 import tkinter
+
 import psycopg2 as db_connect
 
 # Definícia globálnych premenných
