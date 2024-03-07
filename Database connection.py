@@ -7,8 +7,6 @@ conn = psycopg2.connect(database="ZasadaciPoriadok",
 
 cur = conn.cursor()
 
-# TODO Urobit subory vsetkych ziakov na skole
-
 triedaInput: str = input("Trieda: ").capitalize()
 
 subor = open("{}.tssl".format(triedaInput), 'r')
