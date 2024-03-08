@@ -44,16 +44,21 @@ def canvasReset(appStateInternal="Main menu", addInfo=''):
         canvas = tkinter.Canvas(width='1000', height='700')
         canvas.pack()
         if addInfo != "":
-            databaza = db_connect.connect(database="ZasadaciPoriadok",
-                                          user="postgres",
-                                          host='localhost',
-                                          port=5432)
-            kurzor = databaza.cursor()
+            try:
+                databaza = db_connect.connect(database="ZasadaciPoriadok",
+                                              user="postgres",
+                                              host='localhost',
+                                              port=5432)
+                kurzor = databaza.cursor()
 
-            kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
-                                    WHERE "Trieda" = '{}' and "Zahranicie" = false
-                                    ORDER BY "Meno a Priezvisko" ASC;""".format(actionBoxes[addInfo][1].capitalize()))
-            tabulka = kurzor.fetchall()
+                kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
+                                        WHERE "Trieda" = '{}' and "Zahranicie" = false
+                                        ORDER BY "Meno a Priezvisko" ASC;""".format(
+                    actionBoxes[addInfo][1].capitalize()))
+                tabulka = kurzor.fetchall()
+            except db_connect.OperationalError:
+                canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo","Skúste skontrolovať svoje internetové pripojenie"])
+                stop = True
         if not stop:
             actionBoxes.clear()
             create_text_box(10, 10, "pocetRadov", sizeX=100, sizeY=20, defaultText="Počet radov")
@@ -66,7 +71,8 @@ def canvasReset(appStateInternal="Main menu", addInfo=''):
         canvas = tkinter.Canvas(width='320', height='100')
         canvas.pack()
         actionBoxes.clear()
-        canvas.create_text(165, 25, text=addInfo, font="Arial 20 bold")
+        canvas.create_text(165, 20, text=addInfo[0], font="Arial 18 bold")
+        canvas.create_text(165, 45, text=addInfo[1], font="Arial 12")
         create_button(130, 65, "quit", sizeX=60, sizeY=25, text="Ok", textScale=1.25)
     triggerDefinition()
 
