@@ -28,18 +28,20 @@ def _init():
     canvasReset()
 
 
-def canvasReset(appStateInternal="Main menu", addInfo=''):
+def canvasReset(appStateInternal="Main menu", addInfo=None):
+    if addInfo is None:
+        addInfo = ""
     global canvas, tabulka
     stop = False
     canvas.delete("all")
-    canvas.destroy()
+    canvas.pack_forget()
     if appStateInternal == "Main menu":
         canvas = tkinter.Canvas(width='300', height='500')
         canvas.pack()
         canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
         actionBoxes.clear()
-        create_button(50, 150, text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75, tags="startButton")
-        create_text_box(50, 250, "filePath", sizeX=200, defaultText="Insert file path here")
+        create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
+        create_text_box(50, 250, "filePath", sizeX=200, defaultText="Insert file path here", typedText=addInfo)
     elif appStateInternal == "Main App":
         canvas = tkinter.Canvas(width='1000', height='700')
         canvas.pack()
@@ -58,41 +60,55 @@ def canvasReset(appStateInternal="Main menu", addInfo=''):
                 tabulka = kurzor.fetchall()
             except db_connect.OperationalError:
                 canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
-                                                               "Skúste skontrolovať svoje internetové pripojenie"])
+                                                               "Skúste skontrolovať svoje internetové pripojenie",
+                                                               "quit",
+                                                               ""])
                 stop = True
         if not stop:
-            actionBoxes.clear()
-            create_text_box(10, 10, "pocetRadov", sizeX=100, sizeY=20, defaultText="Počet radov")
-            i = 0
-            for riadok in tabulka:
-                print(riadok)
-                i += 1
-            print(i)
+            if tabulka != []:
+                actionBoxes.clear()
+                create_text_box(10, 10, "pocetRadov", sizeX=100, sizeY=20, defaultText="Počet radov")
+                i = 0
+                for riadok in tabulka:
+                    print(riadok)
+                    i += 1
+                print(i)
+            else:
+                canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
+                                                               "Skúste to prosím znova, so správnym menom triedy",
+                                                               "reset",
+                                                               actionBoxes[addInfo][1]])
+                print(actionBoxes[addInfo][1])
     elif appStateInternal == "Error":
         canvas = tkinter.Canvas(width='320', height='100')
         canvas.pack()
         actionBoxes.clear()
         canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial 18 bold")
         canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial 12")
-        create_button(130, 65, "quit", sizeX=60, sizeY=25, text="Ok", textScale=1.25)
+        create_button(130, 65, str(addInfo[2]), sizeX=60, sizeY=25, text="Ok", textScale=1.25, moreInfo=addInfo[3])
     triggerDefinition()
 
 
-def create_button(x, y, tags, sizeX=100, sizeY=50, text="", textScale=1.0, textOptions=""):
+def create_button(x, y, tags, sizeX=100, sizeY=50, text="", textScale=1.0, textOptions="", moreInfo=""):
     global actionBoxes
     canvas.create_rectangle(x, y, x + sizeX, y + sizeY, tags=tags, width=2)
     canvas.create_text(x + (sizeX / 2), y + (sizeY / 2), text=text,
                        font="Arial {} {}".format(round(15 * textScale), textOptions), tags=tags + "_text")
     actionBoxes.update(
-        {tags: [[x, y, sizeX, sizeY, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")]]})
+        {tags: [[x, y, sizeX, sizeY, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")],
+                moreInfo]})
 
 
-def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText=""):
+def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText="", typedText=""):
     global actionBoxes
     canvas.create_rectangle(x, y, x + sizeX, y + sizeY, fill="#808080", width=2, tags=tags)
-    canvas.create_text(x + (sizeX / 2), y + (sizeY / 2), text=defaultText, tags=tags + "_text", justify="left")
+    if typedText == "":
+        canvas.create_text(x + (sizeX / 2), y + (sizeY / 2), text=defaultText, tags=tags + "_text", justify="left")
+    else:
+        canvas.create_text(x + (sizeX / 2), y + (sizeY / 2), text=typedText, tags=tags + "_text", justify="left")
     actionBoxes.update(
-        {tags: [[x, y, sizeX, sizeY, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")], ""]})
+        {tags: [[x, y, sizeX, sizeY, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")],
+                typedText]})
 
 
 def writeToBox(tags, text):
@@ -112,6 +128,10 @@ def executeBox(tags):
             return True
         case 'quit':
             quit()
+        case 'reset':
+            appState = 'Main menu'
+            canvasReset(appState, addInfo=actionBoxes[tags][1])
+            return True
         case _:
             if binds != []:
                 for bind in binds:
