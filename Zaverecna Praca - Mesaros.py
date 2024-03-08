@@ -57,7 +57,8 @@ def canvasReset(appStateInternal="Main menu", addInfo=''):
                     actionBoxes[addInfo][1].capitalize()))
                 tabulka = kurzor.fetchall()
             except db_connect.OperationalError:
-                canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo","Skúste skontrolovať svoje internetové pripojenie"])
+                canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
+                                                               "Skúste skontrolovať svoje internetové pripojenie"])
                 stop = True
         if not stop:
             actionBoxes.clear()
@@ -71,8 +72,8 @@ def canvasReset(appStateInternal="Main menu", addInfo=''):
         canvas = tkinter.Canvas(width='320', height='100')
         canvas.pack()
         actionBoxes.clear()
-        canvas.create_text(165, 20, text=addInfo[0], font="Arial 18 bold")
-        canvas.create_text(165, 45, text=addInfo[1], font="Arial 12")
+        canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial 18 bold")
+        canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial 12")
         create_button(130, 65, "quit", sizeX=60, sizeY=25, text="Ok", textScale=1.25)
     triggerDefinition()
 
