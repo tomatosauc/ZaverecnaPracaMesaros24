@@ -48,7 +48,6 @@ def canvasReset(appStateInternal="Main menu", addInfo=''):
                                           user="postgres",
                                           host='localhost',
                                           port=5432)
-
             kurzor = databaza.cursor()
 
             kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
