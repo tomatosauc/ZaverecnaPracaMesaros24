@@ -3,8 +3,6 @@ import tkinter
 from math import *
 from random import *
 
-import psycopg2 as db_connect
-
 # Definícia globálnych premenných
 root = tkinter.Tk()
 canvas = tkinter.Canvas()
@@ -15,6 +13,10 @@ tabulka = []
 textBox = ""
 target = False
 targetStudent = ""
+mode = "local".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
+
+if mode == "Database":
+    import psycopg2 as db_connect
 
 
 # Definícia funkcií
@@ -51,24 +53,35 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
             canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
             if addInfo != "":
-                try:
-                    databaza = db_connect.connect(database="ZasadaciPoriadok",
-                                                  user="postgres",
-                                                  host='localhost',
-                                                  port=5432)
-                    kurzor = databaza.cursor()
+                if mode == "Database":
+                    try:
+                        databaza = db_connect.connect(database="ZasadaciPoriadok",
+                                                      user="postgres",
+                                                      host='localhost',
+                                                      port=5432)
+                        kurzor = databaza.cursor()
 
-                    kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
-                                            WHERE "Trieda" = '{}' and "Zahranicie" = false
-                                            ORDER BY "Meno a Priezvisko" ASC;""".format(
-                        actionBoxes[addInfo][1].capitalize()))
-                    tabulka = kurzor.fetchall()
-                except db_connect.OperationalError:
-                    canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
-                                                                   "Skúste skontrolovať svoje internetové pripojenie",
-                                                                   "quit",
-                                                                   ""])
-                    stop = True
+                        kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
+                                                WHERE "Trieda" = '{}' and "Zahranicie" = false
+                                                ORDER BY "Meno a Priezvisko" ASC;""".format(
+                            actionBoxes[addInfo][1].capitalize()))
+                        tabulka = kurzor.fetchall()
+                    except db_connect.OperationalError:
+                        canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
+                                                                       "Skúste skontrolovať svoje internetové pripojenie",
+                                                                       "quit",
+                                                                       ""])
+                        stop = True
+                else:
+                    tabulka = [('Brňáková Ema', 'Aj2'), ('Drahoš Alex', 'Aj2'), ('Fajnor Ján', 'Aj2'),
+                           ('Fejda Marko', 'Aj1'), ('Filc Marian', 'Aj1'), ('Gižická Tereza', 'Aj1'),
+                           ('Golian Matej', 'Aj2'), ('Hitzingerová Silvia', 'Aj2'), ('Horská Barbora', 'Aj1'),
+                           ('Horská Veronika', 'Aj1'), ('Katrincová Tereza', 'Aj1'), ('Kekeši Filip', 'Aj1'),
+                           ('Kočan Maximilián', 'Aj2'), ('Lauko Pavol', 'Aj2'), ('Luknárová Hana', 'Aj1'),
+                           ('Melioris Mia', 'Aj1'), ('Mésároš Tomáš', 'Aj2'), ('Navarčíková Natália', 'Aj1'),
+                           ('Pavlíková Liana', 'Aj1'), ('Peschl Jakub', 'Aj2'), ('Pongrácová Petra Ella', 'Aj2'),
+                           ('Salner Leon', 'Aj1'), ('Skoček Ilja', 'Aj2'), ('Vajdová Ina', 'Aj1'),
+                           ('Zaťko Pavol', 'Aj2')]
             if not stop:
                 if tabulka != []:
                     actionBoxes.clear()
@@ -235,7 +248,8 @@ def generateTable(use_tabulka, NZiakov):
                            groups=meno[1],
                            position=[chr(65 + i % NCols), floor(i / NCols) + 1])
         else:
-            canvas.create_text(77.5, 100, text="!! VAROVANIE !!\nTabuľka nie je \ndostatočne veľká,\nna daný počet žiakov",
+            canvas.create_text(77.5, 100,
+                               text="!! VAROVANIE !!\nTabuľka nie je \ndostatočne veľká,\nna daný počet žiakov",
                                fill='Red', tags="class-warning", justify="center")
 
 
