@@ -1,6 +1,7 @@
 # Importovanie modulov
-import math
 import tkinter
+from math import *
+from random import *
 
 import psycopg2 as db_connect
 
@@ -12,13 +13,14 @@ actionBoxes = {}
 binds = []
 tabulka = []
 textBox = ""
+target = False
+targetStudent = ""
 
 
 # Definícia funkcií
 def _init():
     global canvas, appState
     # Reset premenných
-    canvas = tkinter.Canvas()
     appState = "Main menu"
 
     # Nastavenie okna
@@ -39,14 +41,14 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
     canvas.pack_forget()
     match appStateInternal:
         case "Main menu":
-            canvas = tkinter.Canvas(width='300', height='500')
+            canvas = tkinter.Canvas(width='300', height='320')
             canvas.pack()
             canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
             actionBoxes.clear()
             create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
-            create_text_box(50, 250, "filePath -textBox- ", sizeX=200, defaultText="Meno triedy", typedText=addInfo)
+            create_text_box(50, 250, "filePath-textBox-", sizeX=200, defaultText="Meno triedy", typedText=addInfo)
         case "Main App":
-            canvas = tkinter.Canvas(width='1000', height='700')
+            canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
             if addInfo != "":
                 try:
@@ -70,12 +72,17 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
             if not stop:
                 if tabulka != []:
                     actionBoxes.clear()
-                    i = len(tabulka) + 1
-                    create_text_box(105, 10, "pocetStlpcov -textBox- ", sizeX=40, sizeY=20, typedText='4')
+                    NZiakov = len(tabulka)
+                    create_text_box(105, 10, "pocetStlpcov-textBox-", sizeX=40, sizeY=20, typedText='4')
                     canvas.create_text(50, 18, text="Počet stĺpcov:")
-                    create_text_box(105, 40, "pocetRadov -textBox- ", sizeX=40, sizeY=20,
-                                    typedText=str(math.ceil(i / int(actionBoxes["pocetStlpcov"][1]))))
+                    create_text_box(105, 40, "pocetRadov-textBox-", sizeX=40, sizeY=20,
+                                    typedText=str(ceil(NZiakov / int(actionBoxes["pocetStlpcov-textBox-"][1]))))
                     canvas.create_text(50, 48, text="Počet radov:")
+                    canvas.create_line(155, 0, 155, 700, width=2)
+                    create_button(10, 640, 'export', sizeX=135, textScale=1.2, text="Export", textOptions="bold")
+                    create_button(10, 580, 'regen', sizeX=135, textScale=1, text="Generovať znova",
+                                  textOptions="bold")
+                    generateTable(tabulka.copy(), NZiakov)
                 else:
                     canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
                                                                    "Skúste to prosím znova, so správnym menom triedy",
@@ -113,8 +120,34 @@ def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText="", typedText="
                 typedText]})
 
 
+def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", position=""):
+    groups = groups.split(", ")
+    group = groups[0]
+    if len(groups) > 1:
+        for skupina in groups[1:]:
+            group += ", " + skupina
+    tagName = tags + "-" + name.replace(" ", "_")
+    nameSplit = name.split(" ")
+    name = ""
+    for word in nameSplit:
+        name += word + "\n "
+    name = name[:-2]
+    if sizeX > sizeY:
+        sizeText = sizeY
+    else:
+        sizeText = sizeX
+    canvas.create_rectangle(x, y, x + sizeX, y + sizeY, tags=tagName, width=2)
+    canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 5), text=name, tags=tagName + '_text',
+                       justify="center", font="Arial {}".format(str(round((sizeText / 3) / 2.25))))
+    canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 10), text=group, tags=tagName + '_text2',
+                       font="Arial {}".format(str(round((sizeText / 3) / 2.75))))
+    actionBoxes.update(
+        {tagName: [[x, y, sizeX, sizeY, canvas.itemcget(tagName, "fill"), canvas.itemcget(tagName + "_text", "fill")],
+                   group, position]})
+
+
 def executeBox(tags):
-    global canvas, binds, appState, textBox
+    global canvas, binds, appState, textBox, tabulka, target, targetStudent
     if binds != []:
         for bind in binds:
             canvas.unbind_all(bind)
@@ -124,15 +157,24 @@ def executeBox(tags):
     match tags:
         case 'startButton':
             appState = 'Main App'
-            canvasReset(appState, 'filePath')
+            canvasReset(appState, 'filePath-textBox-')
         case 'quit':
             quit()
         case 'reset':
             appState = 'Main menu'
             canvasReset(appState, actionBoxes[tags][1])
-    if tags.contains(" -textBox- "):
+        case 'regen':
+            generateTable(tabulka.copy(), len(tabulka))
+    if '-textBox-' in tags:
         canvas.bind_all("<Key>", keyPressed)
         binds.append("<Key>")
+    elif 'class-' in tags:
+        if target:
+            exchange(tags, targetStudent)
+            target = False
+        else:
+            targetStudent = tags
+            target = True
 
 
 def keyPressed(event):
@@ -148,6 +190,72 @@ def keyPressed(event):
             case "BackSpace":
                 actionBoxes.update({textBox: [actionBoxes[textBox][0], actionBoxes[textBox][1][:-1]]})
                 canvas.itemconfig(textBox + "_text", text=actionBoxes[textBox][1])
+    if textBox == "pocetStlpcov-textBox-" or textBox == "pocetRadov-textBox-":
+        generateTable(tabulka.copy(), len(tabulka))
+
+
+def generateTable(use_tabulka, NZiakov):
+    global actionBoxes
+    for box in actionBoxes.copy():
+        if "class-" in box:
+            canvas.delete(box)
+            canvas.delete(box + "_text")
+            canvas.delete(box + "_text2")
+            actionBoxes.pop(box)
+    canvas.delete("class-warning")
+    dimensionX = [165, 645]
+    dimensionY = [10, 690]
+    sizeX = dimensionX[1] - dimensionX[0]
+    sizeY = dimensionY[1] - dimensionY[0]
+    try:
+        NCols = int(actionBoxes['pocetStlpcov-textBox-'][1])
+    except ValueError:
+        NCols = 4
+    try:
+        NRows = int(actionBoxes['pocetRadov-textBox-'][1])
+    except ValueError:
+        NRows = ceil(NZiakov / NCols)
+    if NRows == 0:
+        NRows = ceil(NZiakov / NCols)
+    if NCols == 0:
+        NCols = 4
+    for i in range(NZiakov):
+        if len(use_tabulka) > 1:
+            meno = use_tabulka[randrange(0, len(use_tabulka))]
+            use_tabulka.remove(meno)
+        elif len(use_tabulka) == 1:
+            meno = use_tabulka[0]
+            use_tabulka.remove(meno)
+        else:
+            meno = ""
+        if not round(dimensionY[0] + (sizeY / NRows) * floor(i / NCols)) >= dimensionY[1]:
+            create_student(round(dimensionX[0] + (sizeX / NCols) * (i % NCols)),
+                           round(dimensionY[0] + (sizeY / NRows) * floor(i / NCols)),
+                           "class", sizeX=round(sizeX / NCols), sizeY=round(sizeY / NRows), name=meno[0],
+                           groups=meno[1],
+                           position=[chr(65 + i % NCols), floor(i / NCols) + 1])
+        else:
+            canvas.create_text(77.5, 100, text="!! VAROVANIE !!\nTabuľka nie je \ndostatočne veľká,\nna daný počet žiakov",
+                               fill='Red', tags="class-warning", justify="center")
+
+
+def exchange(student1, student2):
+    global actionBoxes, canvas
+    temp = actionBoxes[student1]
+    actionBoxes.update({student1: actionBoxes[student2]})
+    actionBoxes.update({student2: temp})
+    canvas.move(student1, actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
+                actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.move(student1 + "_text", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
+                actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.move(student1 + "_text2", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
+                actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.move(student2, actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
+                actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
+    canvas.move(student2 + "_text", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
+                actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
+    canvas.move(student2 + "_text2", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
+                actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
 
 
 # Definícia triggerov
@@ -160,16 +268,17 @@ def triggerDefinition():
 def mouseMove(event):
     mouseX = event.x
     mouseY = event.y
-    canvas.itemconfig("mousePos", text="{}, {}".format(mouseX, mouseY))
     for box in actionBoxes:
         if (
                 actionBoxes[box][0][0] < mouseX < actionBoxes[box][0][0] + actionBoxes[box][0][2] and
                 actionBoxes[box][0][1] < mouseY < actionBoxes[box][0][1] + actionBoxes[box][0][3]):
             canvas.itemconfig(box, fill="#d0d0d0")
             canvas.itemconfig(box + "_text", fill="#2F2F2F")
+            canvas.itemconfig(box + "_text2", fill="#2F2F2F")
         else:
             canvas.itemconfig(box, fill=actionBoxes[box][0][4])
             canvas.itemconfig(box + "_text", fill=actionBoxes[box][0][5])
+            canvas.itemconfig(box + "_text2", fill=actionBoxes[box][0][5])
 
 
 def LMBClick(event):
