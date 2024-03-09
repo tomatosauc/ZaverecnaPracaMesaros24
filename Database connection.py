@@ -4,7 +4,6 @@ conn = psycopg2.connect(database="ZasadaciPoriadok",
                         user="postgres",
                         host='localhost',
                         port=5432)
-
 cur = conn.cursor()
 
 triedaInput: str = input("Trieda: ").capitalize()

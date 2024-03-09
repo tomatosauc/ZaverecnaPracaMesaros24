@@ -1,4 +1,5 @@
 # Importovanie modulov
+import math
 import tkinter
 
 import psycopg2 as db_connect
@@ -10,6 +11,7 @@ appState = "Main menu"
 actionBoxes = {}
 binds = []
 tabulka = []
+textBox = ""
 
 
 # Definícia funkcií
@@ -35,57 +37,57 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
     stop = False
     canvas.delete("all")
     canvas.pack_forget()
-    if appStateInternal == "Main menu":
-        canvas = tkinter.Canvas(width='300', height='500')
-        canvas.pack()
-        canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
-        actionBoxes.clear()
-        create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
-        create_text_box(50, 250, "filePath", sizeX=200, defaultText="Insert file path here", typedText=addInfo)
-    elif appStateInternal == "Main App":
-        canvas = tkinter.Canvas(width='1000', height='700')
-        canvas.pack()
-        if addInfo != "":
-            try:
-                databaza = db_connect.connect(database="ZasadaciPoriadok",
-                                              user="postgres",
-                                              host='localhost',
-                                              port=5432)
-                kurzor = databaza.cursor()
+    match appStateInternal:
+        case "Main menu":
+            canvas = tkinter.Canvas(width='300', height='500')
+            canvas.pack()
+            canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
+            actionBoxes.clear()
+            create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
+            create_text_box(50, 250, "filePath -textBox- ", sizeX=200, defaultText="Meno triedy", typedText=addInfo)
+        case "Main App":
+            canvas = tkinter.Canvas(width='1000', height='700')
+            canvas.pack()
+            if addInfo != "":
+                try:
+                    databaza = db_connect.connect(database="ZasadaciPoriadok",
+                                                  user="postgres",
+                                                  host='localhost',
+                                                  port=5432)
+                    kurzor = databaza.cursor()
 
-                kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
-                                        WHERE "Trieda" = '{}' and "Zahranicie" = false
-                                        ORDER BY "Meno a Priezvisko" ASC;""".format(
-                    actionBoxes[addInfo][1].capitalize()))
-                tabulka = kurzor.fetchall()
-            except db_connect.OperationalError:
-                canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
-                                                               "Skúste skontrolovať svoje internetové pripojenie",
-                                                               "quit",
-                                                               ""])
-                stop = True
-        if not stop:
-            if tabulka != []:
-                actionBoxes.clear()
-                create_text_box(10, 10, "pocetRadov", sizeX=100, sizeY=20, defaultText="Počet radov")
-                i = 0
-                for riadok in tabulka:
-                    print(riadok)
-                    i += 1
-                print(i)
-            else:
-                canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
-                                                               "Skúste to prosím znova, so správnym menom triedy",
-                                                               "reset",
-                                                               actionBoxes[addInfo][1]])
-                print(actionBoxes[addInfo][1])
-    elif appStateInternal == "Error":
-        canvas = tkinter.Canvas(width='320', height='100')
-        canvas.pack()
-        actionBoxes.clear()
-        canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial 18 bold")
-        canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial 12")
-        create_button(130, 65, str(addInfo[2]), sizeX=60, sizeY=25, text="Ok", textScale=1.25, moreInfo=addInfo[3])
+                    kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
+                                            WHERE "Trieda" = '{}' and "Zahranicie" = false
+                                            ORDER BY "Meno a Priezvisko" ASC;""".format(
+                        actionBoxes[addInfo][1].capitalize()))
+                    tabulka = kurzor.fetchall()
+                except db_connect.OperationalError:
+                    canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
+                                                                   "Skúste skontrolovať svoje internetové pripojenie",
+                                                                   "quit",
+                                                                   ""])
+                    stop = True
+            if not stop:
+                if tabulka != []:
+                    actionBoxes.clear()
+                    i = len(tabulka) + 1
+                    create_text_box(105, 10, "pocetStlpcov -textBox- ", sizeX=40, sizeY=20, typedText='4')
+                    canvas.create_text(50, 18, text="Počet stĺpcov:")
+                    create_text_box(105, 40, "pocetRadov -textBox- ", sizeX=40, sizeY=20,
+                                    typedText=str(math.ceil(i / int(actionBoxes["pocetStlpcov"][1]))))
+                    canvas.create_text(50, 48, text="Počet radov:")
+                else:
+                    canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
+                                                                   "Skúste to prosím znova, so správnym menom triedy",
+                                                                   "reset",
+                                                                   actionBoxes[addInfo][1]])
+        case "Error":
+            canvas = tkinter.Canvas(width='320', height='100')
+            canvas.pack()
+            actionBoxes.clear()
+            canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial 18 bold")
+            canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial 12")
+            create_button(130, 65, str(addInfo[2]), sizeX=60, sizeY=25, text="Ok", textScale=1.25, moreInfo=addInfo[3])
     triggerDefinition()
 
 
@@ -111,46 +113,41 @@ def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText="", typedText="
                 typedText]})
 
 
-def writeToBox(tags, text):
-    canvas.itemconfig(tags + "_text", text=text)
-
-
 def executeBox(tags):
-    global canvas, binds, appState
+    global canvas, binds, appState, textBox
+    if binds != []:
+        for bind in binds:
+            canvas.unbind_all(bind)
+            binds.remove(bind)
+        binds = []
+    textBox = tags
     match tags:
-        case 'filePath':
-            canvas.bind_all('<Key>', filePathPressed)
-            binds.append('<Key>')
-            return False
         case 'startButton':
             appState = 'Main App'
             canvasReset(appState, 'filePath')
-            return True
         case 'quit':
             quit()
         case 'reset':
             appState = 'Main menu'
-            canvasReset(appState, addInfo=actionBoxes[tags][1])
-            return True
-        case _:
-            if binds != []:
-                for bind in binds:
-                    canvas.bind_all(bind, "")
-                    binds.remove(bind)
+            canvasReset(appState, actionBoxes[tags][1])
+    if tags.contains(" -textBox- "):
+        canvas.bind_all("<Key>", keyPressed)
+        binds.append("<Key>")
 
 
-def filePathPressed(event):
+def keyPressed(event):
+    global textBox
     if event.char != "":
         char = event.char
-        actionBoxes.update({"filePath": [actionBoxes["filePath"][0], actionBoxes["filePath"][1] + char]})
-        canvas.itemconfig("filePath_text", text=actionBoxes["filePath"][1])
+        actionBoxes.update({textBox: [actionBoxes[textBox][0], actionBoxes[textBox][1] + char]})
+        canvas.itemconfig(textBox + "_text", text=actionBoxes[textBox][1])
     else:
         match event.keysym:
             case "Return":
                 executeBox("")
             case "BackSpace":
-                actionBoxes.update({"filePath": [actionBoxes["filePath"][0], actionBoxes["filePath"][1][:-1]]})
-                canvas.itemconfig("filePath_text", text=actionBoxes["filePath"][1])
+                actionBoxes.update({textBox: [actionBoxes[textBox][0], actionBoxes[textBox][1][:-1]]})
+                canvas.itemconfig(textBox + "_text", text=actionBoxes[textBox][1])
 
 
 # Definícia triggerov
@@ -182,8 +179,8 @@ def LMBClick(event):
         if (
                 actionBoxes[box][0][0] < mouseX < actionBoxes[box][0][0] + actionBoxes[box][0][2] and
                 actionBoxes[box][0][1] < mouseY < actionBoxes[box][0][1] + actionBoxes[box][0][3]):
-            if executeBox(box):
-                break
+            executeBox(box)
+            break
         else:
             executeBox("")
 
