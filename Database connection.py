@@ -16,7 +16,7 @@ meno = ''
 trieda = ''
 for riadok in subor:
     if Nriadok == 0:
-        trieda = riadok.strip()[3:]
+        trieda = riadok.strip().split(" ")[1]
     else:
         if not " -info" in riadok:
             meno = riadok.strip()

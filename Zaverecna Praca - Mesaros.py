@@ -13,7 +13,7 @@ tabulka = []
 textBox = ""
 target = False
 targetStudent = ""
-mode = "local".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
+mode = "database".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
 
 if mode == "Database":
     import psycopg2 as db_connect
