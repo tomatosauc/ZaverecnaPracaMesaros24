@@ -74,14 +74,14 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                         stop = True
                 else:
                     tabulka = [('Brňáková Ema', 'Aj2'), ('Drahoš Alex', 'Aj2'), ('Fajnor Ján', 'Aj2'),
-                           ('Fejda Marko', 'Aj1'), ('Filc Marian', 'Aj1'), ('Gižická Tereza', 'Aj1'),
-                           ('Golian Matej', 'Aj2'), ('Hitzingerová Silvia', 'Aj2'), ('Horská Barbora', 'Aj1'),
-                           ('Horská Veronika', 'Aj1'), ('Katrincová Tereza', 'Aj1'), ('Kekeši Filip', 'Aj1'),
-                           ('Kočan Maximilián', 'Aj2'), ('Lauko Pavol', 'Aj2'), ('Luknárová Hana', 'Aj1'),
-                           ('Melioris Mia', 'Aj1'), ('Mésároš Tomáš', 'Aj2'), ('Navarčíková Natália', 'Aj1'),
-                           ('Pavlíková Liana', 'Aj1'), ('Peschl Jakub', 'Aj2'), ('Pongrácová Petra Ella', 'Aj2'),
-                           ('Salner Leon', 'Aj1'), ('Skoček Ilja', 'Aj2'), ('Vajdová Ina', 'Aj1'),
-                           ('Zaťko Pavol', 'Aj2')]
+                               ('Fejda Marko', 'Aj1'), ('Filc Marian', 'Aj1'), ('Gižická Tereza', 'Aj1'),
+                               ('Golian Matej', 'Aj2'), ('Hitzingerová Silvia', 'Aj2'), ('Horská Barbora', 'Aj1'),
+                               ('Horská Veronika', 'Aj1'), ('Katrincová Tereza', 'Aj1'), ('Kekeši Filip', 'Aj1'),
+                               ('Kočan Maximilián', 'Aj2'), ('Lauko Pavol', 'Aj2'), ('Luknárová Hana', 'Aj1'),
+                               ('Melioris Mia', 'Aj1'), ('Mésároš Tomáš', 'Aj2'), ('Navarčíková Natália', 'Aj1'),
+                               ('Pavlíková Liana', 'Aj1'), ('Peschl Jakub', 'Aj2'), ('Pongrácová Petra Ella', 'Aj2'),
+                               ('Salner Leon', 'Aj1'), ('Skoček Ilja', 'Aj2'), ('Vajdová Ina', 'Aj1'),
+                               ('Zaťko Pavol', 'Aj2')]
             if not stop:
                 if tabulka != []:
                     actionBoxes.clear()
@@ -154,6 +154,15 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
                        justify="center", font="Arial {}".format(str(round((sizeText / 3) / 2.25))))
     canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 10), text=group, tags=tagName + '_text2',
                        font="Arial {}".format(str(round((sizeText / 3) / 2.75))))
+    # canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
+                      # y + sizeY / 9 + sizeText / 9, fill='red', width=2, tags=tagName + '_close_text')
+    # canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9 + sizeText / 9, x + sizeX - sizeX / 9 - sizeText / 9,
+                       # y + sizeY / 9, fill='red', width=2, tags=tagName + '_close_text')
+    # canvas.create_rectangle(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
+                      # y + sizeY / 9 + sizeText / 9, outline='', tags=tagName + '_close')
+    #actionBoxes.update(
+     #   {tagName + 'close' : [[x, y, sizeX, sizeY, canvas.itemcget(tagName + "_close", "fill"), canvas.itemcget(tagName + "_text", "fill")], tagName]}
+    #)
     actionBoxes.update(
         {tagName: [[x, y, sizeX, sizeY, canvas.itemcget(tagName, "fill"), canvas.itemcget(tagName + "_text", "fill")],
                    group, position]})
@@ -214,6 +223,7 @@ def generateTable(use_tabulka, NZiakov):
             canvas.delete(box)
             canvas.delete(box + "_text")
             canvas.delete(box + "_text2")
+            canvas.delete(box + "_close")
             actionBoxes.pop(box)
     canvas.delete("class-warning")
     dimensionX = [165, 645]
@@ -264,6 +274,9 @@ def exchange(student1, student2):
                 actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
     canvas.move(student1 + "_text2", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
                 actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.itemconfig(student1, fill="")
+    # canvas.move(student1 + "_close", actionBoxes[student1][0][0] - actionBoxes[student2][0][0], # TODO dorobit close button
+                # actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
     canvas.move(student2, actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
                 actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
     canvas.move(student2 + "_text", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
