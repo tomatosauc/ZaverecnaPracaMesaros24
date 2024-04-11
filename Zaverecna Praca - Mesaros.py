@@ -154,15 +154,15 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
                        justify="center", font="Arial {}".format(str(round((sizeText / 3) / 2.25))))
     canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 10), text=group, tags=tagName + '_text2',
                        font="Arial {}".format(str(round((sizeText / 3) / 2.75))))
-    # canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
-                      # y + sizeY / 9 + sizeText / 9, fill='red', width=2, tags=tagName + '_close_text')
-    # canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9 + sizeText / 9, x + sizeX - sizeX / 9 - sizeText / 9,
-                       # y + sizeY / 9, fill='red', width=2, tags=tagName + '_close_text')
-    # canvas.create_rectangle(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
-                      # y + sizeY / 9 + sizeText / 9, outline='', tags=tagName + '_close')
-    #actionBoxes.update(
-     #   {tagName + 'close' : [[x, y, sizeX, sizeY, canvas.itemcget(tagName + "_close", "fill"), canvas.itemcget(tagName + "_text", "fill")], tagName]}
-    #)
+    canvas.create_rectangle(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
+                       y + sizeY / 9 + sizeText / 9, outline='', tags=tagName + '_close')
+    canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
+                       y + sizeY / 9 + sizeText / 9, fill='red', width=2, tags=tagName + '_close_text2')
+    canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9 + sizeText / 9, x + sizeX - sizeX / 9 - sizeText / 9,
+                        y + sizeY / 9, fill='red', width=2, tags=tagName + '_close_text')
+    actionBoxes.update(
+        {tagName + '_close' : [[x + sizeX - sizeX / 9 - sizeText / 9, y + sizeY / 9, sizeText/9, sizeText/9, canvas.itemcget(tagName + "_close", "fill"), canvas.itemcget(tagName + "_close_text", "fill")], tagName]}
+    )
     actionBoxes.update(
         {tagName: [[x, y, sizeX, sizeY, canvas.itemcget(tagName, "fill"), canvas.itemcget(tagName + "_text", "fill")],
                    group, position]})
@@ -191,12 +191,23 @@ def executeBox(tags):
         canvas.bind_all("<Key>", keyPressed)
         binds.append("<Key>")
     elif 'class-' in tags:
-        if target:
-            exchange(tags, targetStudent)
-            target = False
+        if "_close" in tags:
+            tags = tags.removesuffix("_close")
+            canvas.delete(tags)
+            canvas.delete(tags + "_text")
+            canvas.delete(tags + "_text2")
+            canvas.delete(tags + "_close")
+            canvas.delete(tags + "_close_text")
+            canvas.delete(tags + "_close_text2")
+            tabulka = [x for x in tabulka if x!= (tags.removeprefix("class-").replace("_", " "),actionBoxes[tags][1])]
+            generateTable(tabulka.copy(), len(tabulka))
         else:
-            targetStudent = tags
-            target = True
+            if target:
+                exchange(tags, targetStudent)
+                target = False
+            else:
+                targetStudent = tags
+                target = True
 
 
 def keyPressed(event):
@@ -223,7 +234,6 @@ def generateTable(use_tabulka, NZiakov):
             canvas.delete(box)
             canvas.delete(box + "_text")
             canvas.delete(box + "_text2")
-            canvas.delete(box + "_close")
             actionBoxes.pop(box)
     canvas.delete("class-warning")
     dimensionX = [165, 645]
@@ -238,10 +248,10 @@ def generateTable(use_tabulka, NZiakov):
         NRows = int(actionBoxes['pocetRadov-textBox-'][1])
     except ValueError:
         NRows = ceil(NZiakov / NCols)
-    if NRows == 0:
-        NRows = ceil(NZiakov / NCols)
     if NCols == 0:
         NCols = 4
+    if NRows == 0:
+        NRows = ceil(NZiakov / NCols)
     for i in range(NZiakov):
         if len(use_tabulka) > 1:
             meno = use_tabulka[randrange(0, len(use_tabulka))]
@@ -268,20 +278,38 @@ def exchange(student1, student2):
     temp = actionBoxes[student1]
     actionBoxes.update({student1: actionBoxes[student2]})
     actionBoxes.update({student2: temp})
+    temp = actionBoxes[student1+"_close"]
+    actionBoxes.update({student1+"_close": actionBoxes[student2+"_close"]})
+    actionBoxes.update({student2+"_close":temp})
     canvas.move(student1, actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
                 actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
     canvas.move(student1 + "_text", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
                 actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
     canvas.move(student1 + "_text2", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
                 actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
-    canvas.itemconfig(student1, fill="")
-    # canvas.move(student1 + "_close", actionBoxes[student1][0][0] - actionBoxes[student2][0][0], # TODO dorobit close button
-                # actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.itemconfig(student2, fill="#d0d0d0")
+    canvas.itemconfig(student2 + "_text", fill="#2F2F2F")
+    canvas.itemconfig(student2 + "_text2", fill="#2F2F2F")
+    canvas.itemconfig(student1, fill=actionBoxes[student1][0][4])
+    canvas.itemconfig(student1 + "_text", fill=actionBoxes[student1][0][5])
+    canvas.itemconfig(student1 + "_text2", fill=actionBoxes[student1][0][5])
+    canvas.move(student1 + "_close", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
+                actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.move(student1 + "_close_text", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
+                actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
+    canvas.move(student1 + "_close_text2", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
+                actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
     canvas.move(student2, actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
                 actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
     canvas.move(student2 + "_text", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
                 actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
     canvas.move(student2 + "_text2", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
+                actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
+    canvas.move(student2 + "_close", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
+                actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
+    canvas.move(student2 + "_close_text", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
+                actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
+    canvas.move(student2 + "_close_text2", actionBoxes[student2][0][0] - actionBoxes[student1][0][0],
                 actionBoxes[student2][0][1] - actionBoxes[student1][0][1])
 
 
