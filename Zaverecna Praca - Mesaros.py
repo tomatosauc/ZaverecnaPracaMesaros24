@@ -3,6 +3,8 @@ import tkinter
 from math import *
 from random import *
 
+from PIL import Image, ImageDraw, ImageFont
+
 # Definícia globálnych premenných
 root = tkinter.Tk()
 canvas = tkinter.Canvas()
@@ -12,6 +14,8 @@ binds = []
 tabulka = []
 textBox = ""
 target = False
+export = Image.new("RGB", (500, 700), "white")
+draw = ImageDraw.Draw(export)
 targetStudent = ""
 mode = "database".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
 
@@ -134,6 +138,8 @@ def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText="", typedText="
 
 
 def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", position=""):
+    global draw
+    font = ImageFont.truetype("Arial.ttf")
     groups = groups.split(", ")
     group = groups[0]
     if len(groups) > 1:
@@ -160,6 +166,9 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
                        y + sizeY / 9 + sizeText / 9, fill='red', width=2, tags=tagName + '_close_text2')
     canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9 + sizeText / 9, x + sizeX - sizeX / 9 - sizeText / 9,
                         y + sizeY / 9, fill='red', width=2, tags=tagName + '_close_text')
+    draw.rectangle((x - 155, y, x + sizeX - 155, y + sizeY), outline="black", width=2)
+    draw.text((round(x + sizeX / 2) - 155, round(y + (sizeY / 12) * 5)),text=name,anchor="mm", font=font, font_size=round((sizeText / 3) / 2.25), fill="black", justify="center")
+    draw.text((round(x + sizeX / 2) - 155, round(y + (sizeY / 12) * 10)),text=group,anchor="mm", font=font, font_size=round((sizeText / 3) / 2.75), fill="black")
     actionBoxes.update(
         {tagName + '_close' : [[x + sizeX - sizeX / 9 - sizeText / 9, y + sizeY / 9, sizeText/9, sizeText/9, canvas.itemcget(tagName + "_close", "fill"), canvas.itemcget(tagName + "_close_text", "fill")], tagName]}
     )
@@ -169,7 +178,7 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
 
 
 def executeBox(tags):
-    global canvas, binds, appState, textBox, tabulka, target, targetStudent
+    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export
     if binds != []:
         for bind in binds:
             canvas.unbind_all(bind)
@@ -187,6 +196,8 @@ def executeBox(tags):
             canvasReset(appState, actionBoxes[tags][1])
         case 'regen':
             generateTable(tabulka.copy(), len(tabulka))
+        case 'export':
+            export.save("test.png")
     if '-textBox-' in tags:
         canvas.bind_all("<Key>", keyPressed)
         binds.append("<Key>")
@@ -228,7 +239,9 @@ def keyPressed(event):
 
 
 def generateTable(use_tabulka, NZiakov):
-    global actionBoxes
+    global actionBoxes, export, draw
+    export = Image.new("RGB", (500, 700), "white")
+    draw = ImageDraw.Draw(export)
     for box in actionBoxes.copy():
         if "class-" in box:
             canvas.delete(box)
