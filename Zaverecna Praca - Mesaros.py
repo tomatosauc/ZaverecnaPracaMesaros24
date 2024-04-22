@@ -14,10 +14,10 @@ binds = []
 tabulka = []
 textBox = ""
 target = False
-export = Image.new("RGB", (500, 700), "white")
+export = Image.new("RGB", (500, 720), "white")
 draw = ImageDraw.Draw(export)
 targetStudent = ""
-mode = "database".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
+mode = "local".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
 
 if mode == "Database":
     import psycopg2 as db_connect
@@ -47,16 +47,18 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
     canvas.pack_forget()
     match appStateInternal:
         case "Main menu":
-            canvas = tkinter.Canvas(width='300', height='320')
+            canvas = tkinter.Canvas(width='300', height='350')
             canvas.pack()
             canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
             actionBoxes.clear()
             create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
             create_text_box(50, 250, "filePath-textBox-", sizeX=200, defaultText="Meno triedy", typedText=addInfo)
+            create_text_box(50, 300, "group-textBox-", sizeX=200, defaultText="Meno skupiny", typedText="")
         case "Main App":
             canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
-            if addInfo != "":
+            if addInfo != None:
+                print(addInfo)
                 if mode == "Database":
                     try:
                         databaza = db_connect.connect(database="ZasadaciPoriadok",
@@ -66,10 +68,11 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                         kurzor = databaza.cursor()
 
                         kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
-                                                WHERE "Trieda" = '{}' and "Zahranicie" = false
+                                                WHERE "Trieda" = '{}' and "Zahranicie" = false 
                                                 ORDER BY "Meno a Priezvisko" ASC;""".format(
                             actionBoxes[addInfo][1].capitalize()))
                         tabulka = kurzor.fetchall()
+
                     except db_connect.OperationalError:
                         canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
                                                                        "Skúste skontrolovať svoje internetové pripojenie",
@@ -77,7 +80,7 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                                                        ""])
                         stop = True
                 else:
-                    tabulka = [('Brňáková Ema', 'Aj2'), ('Drahoš Alex', 'Aj2'), ('Fajnor Ján', 'Aj2'),
+                    tabulka = [('Brňáková Ema', 'Aj2, Nj2'), ('Drahoš Alex', 'Aj2'), ('Fajnor Ján', 'Aj2'),
                                ('Fejda Marko', 'Aj1'), ('Filc Marian', 'Aj1'), ('Gižická Tereza', 'Aj1'),
                                ('Golian Matej', 'Aj2'), ('Hitzingerová Silvia', 'Aj2'), ('Horská Barbora', 'Aj1'),
                                ('Horská Veronika', 'Aj1'), ('Katrincová Tereza', 'Aj1'), ('Kekeši Filip', 'Aj1'),
@@ -161,16 +164,21 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
     canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 10), text=group, tags=tagName + '_text2',
                        font="Arial {}".format(str(round((sizeText / 3) / 2.75))))
     canvas.create_rectangle(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
-                       y + sizeY / 9 + sizeText / 9, outline='', tags=tagName + '_close')
+                            y + sizeY / 9 + sizeText / 9, outline='', tags=tagName + '_close')
     canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
                        y + sizeY / 9 + sizeText / 9, fill='red', width=2, tags=tagName + '_close_text2')
     canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9 + sizeText / 9, x + sizeX - sizeX / 9 - sizeText / 9,
-                        y + sizeY / 9, fill='red', width=2, tags=tagName + '_close_text')
-    draw.rectangle((x - 155, y, x + sizeX - 155, y + sizeY), outline="black", width=2)
-    draw.text((round(x + sizeX / 2) - 155, round(y + (sizeY / 12) * 5)),text=name,anchor="mm", font=font, font_size=round((sizeText / 3) / 2.25), fill="black", justify="center")
-    draw.text((round(x + sizeX / 2) - 155, round(y + (sizeY / 12) * 10)),text=group,anchor="mm", font=font, font_size=round((sizeText / 3) / 2.75), fill="black")
+                       y + sizeY / 9, fill='red', width=2, tags=tagName + '_close_text')
+    draw.rectangle((100, 0, 400, 20), outline="black")
+    draw.rectangle((x - 155, y + 20, x + sizeX - 155, y + sizeY + 20), outline="black", width=2)
+    draw.text((round(x + sizeX / 2) - 155, round(y + (sizeY / 12) * 5) + 20), text=name, anchor="mm", font=font,
+              font_size=round((sizeText / 3) / 2.25), fill="black", justify="center")
+    draw.text((round(x + sizeX / 2) - 155, round(y + (sizeY / 12) * 10) + 20), text=group, anchor="mm", font=font,
+              font_size=round((sizeText / 3) / 2.75), fill="black")
     actionBoxes.update(
-        {tagName + '_close' : [[x + sizeX - sizeX / 9 - sizeText / 9, y + sizeY / 9, sizeText/9, sizeText/9, canvas.itemcget(tagName + "_close", "fill"), canvas.itemcget(tagName + "_close_text", "fill")], tagName]}
+        {tagName + '_close': [[x + sizeX - sizeX / 9 - sizeText / 9, y + sizeY / 9, sizeText / 9, sizeText / 9,
+                               canvas.itemcget(tagName + "_close", "fill"),
+                               canvas.itemcget(tagName + "_close_text", "fill")], tagName]}
     )
     actionBoxes.update(
         {tagName: [[x, y, sizeX, sizeY, canvas.itemcget(tagName, "fill"), canvas.itemcget(tagName + "_text", "fill")],
@@ -210,7 +218,7 @@ def executeBox(tags):
             canvas.delete(tags + "_close")
             canvas.delete(tags + "_close_text")
             canvas.delete(tags + "_close_text2")
-            tabulka = [x for x in tabulka if x!= (tags.removeprefix("class-").replace("_", " "),actionBoxes[tags][1])]
+            tabulka = [x for x in tabulka if x != (tags.removeprefix("class-").replace("_", " "), actionBoxes[tags][1])]
             generateTable(tabulka.copy(), len(tabulka))
         else:
             if target:
@@ -240,7 +248,7 @@ def keyPressed(event):
 
 def generateTable(use_tabulka, NZiakov):
     global actionBoxes, export, draw
-    export = Image.new("RGB", (500, 700), "white")
+    export = Image.new("RGB", (500, 720), "white")
     draw = ImageDraw.Draw(export)
     for box in actionBoxes.copy():
         if "class-" in box:
@@ -291,9 +299,9 @@ def exchange(student1, student2):
     temp = actionBoxes[student1]
     actionBoxes.update({student1: actionBoxes[student2]})
     actionBoxes.update({student2: temp})
-    temp = actionBoxes[student1+"_close"]
-    actionBoxes.update({student1+"_close": actionBoxes[student2+"_close"]})
-    actionBoxes.update({student2+"_close":temp})
+    temp = actionBoxes[student1 + "_close"]
+    actionBoxes.update({student1 + "_close": actionBoxes[student2 + "_close"]})
+    actionBoxes.update({student2 + "_close": temp})
     canvas.move(student1, actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
                 actionBoxes[student1][0][1] - actionBoxes[student2][0][1])
     canvas.move(student1 + "_text", actionBoxes[student1][0][0] - actionBoxes[student2][0][0],
