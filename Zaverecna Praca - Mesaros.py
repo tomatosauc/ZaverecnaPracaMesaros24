@@ -58,7 +58,6 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
             canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
             if addInfo != None:
-                print(addInfo)
                 if mode == "Database":
                     try:
                         databaza = db_connect.connect(database="ZasadaciPoriadok",
@@ -67,10 +66,16 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                                       port=5432)
                         kurzor = databaza.cursor()
 
-                        kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
-                                                WHERE "Trieda" = '{}' and "Zahranicie" = false 
-                                                ORDER BY "Meno a Priezvisko" ASC;""".format(
-                            actionBoxes[addInfo][1].capitalize()))
+                        if actionBoxes[addInfo[0]][1] == "":
+                            kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
+                                                    WHERE "Trieda" = '{}' and "Zahranicie" = false 
+                                                    ORDER BY "Meno a Priezvisko" ASC;""".format(
+                                actionBoxes[addInfo[0]][1].capitalize()))
+                        else:
+                            kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
+                                                                                WHERE "Trieda" = '{}' and "Zahranicie" = false and "Skupina" ~ '{}'
+                                                                                ORDER BY "Meno a Priezvisko" ASC;""".format(
+                                actionBoxes[addInfo[0]][1].capitalize(),actionBoxes[addInfo[1]][1].capitalize()))
                         tabulka = kurzor.fetchall()
 
                     except db_connect.OperationalError:
@@ -107,7 +112,7 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                     canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
                                                                    "Skúste to prosím znova, so správnym menom triedy",
                                                                    "reset",
-                                                                   actionBoxes[addInfo][1]])
+                                                                   actionBoxes[addInfo[0]][1]])
         case "Error":
             canvas = tkinter.Canvas(width='320', height='100')
             canvas.pack()
@@ -196,7 +201,7 @@ def executeBox(tags):
     match tags:
         case 'startButton':
             appState = 'Main App'
-            canvasReset(appState, 'filePath-textBox-')
+            canvasReset(appState, ['filePath-textBox-', 'group-textBox-', ''])
         case 'quit':
             quit()
         case 'reset':
