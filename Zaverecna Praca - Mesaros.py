@@ -1,7 +1,10 @@
 # Importovanie modulov
+import os
 import tkinter
+from datetime import datetime
 from math import *
 from random import *
+from tkinter import messagebox
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -17,6 +20,7 @@ target = False
 export = Image.new("RGB", (500, 720), "white")
 draw = ImageDraw.Draw(export)
 targetStudent = ""
+trieda = []
 mode = "database".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
 
 if mode == "Database":
@@ -41,7 +45,7 @@ def _init():
 def canvasReset(appStateInternal="Main menu", addInfo=None):
     if addInfo is None:
         addInfo = ""
-    global canvas, tabulka
+    global canvas, tabulka, trieda
     stop = False
     canvas.delete("all")
     canvas.pack_forget()
@@ -57,7 +61,7 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
         case "Main App":
             canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
-            if addInfo != None:
+            if addInfo is not None:
                 if mode == "Database":
                     try:
                         databaza = db_connect.connect(database="ZasadaciPoriadok",
@@ -75,8 +79,9 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                             kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
                                                                                 WHERE "Trieda" = '{}' and "Zahranicie" = false and "Skupina" ~ '{}'
                                                                                 ORDER BY "Meno a Priezvisko" ASC;""".format(
-                                actionBoxes[addInfo[0]][1].capitalize(),actionBoxes[addInfo[1]][1].capitalize()))
+                                actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()))
                         tabulka = kurzor.fetchall()
+                        trieda = [actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()]
 
                     except db_connect.OperationalError:
                         canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
@@ -191,7 +196,7 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
 
 
 def executeBox(tags):
-    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export
+    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export, trieda
     if binds != []:
         for bind in binds:
             canvas.unbind_all(bind)
@@ -210,7 +215,18 @@ def executeBox(tags):
         case 'regen':
             generateTable(tabulka.copy(), len(tabulka))
         case 'export':
-            export.save("test.png")
+            if not os.path.exists(os.path.expanduser('~') + "/Downloads/zasadacie_poriadky"):
+                os.mkdir(os.path.expanduser('~') + "/Downloads/zasadacie_poriadky")
+            cas = datetime.now()
+            cas_a_trieda = cas.strftime("-%d:%m:%Y")
+            for element in trieda:
+                if element != '':
+                    cas_a_trieda += "-" + element
+            export.save(
+                "{}/Downloads/zasadacie_poriadky/zasadaci_poriadok{}.png".format(os.path.expanduser('~'), cas_a_trieda))
+            messagebox.showinfo(parent=canvas, title="Zasadací poriadok - export",
+                                message="Zasadací poriadok exportovaný do:\n{}/Downloads/zasadacie_poriadky/zasadaci_poriadok{}.png".format(
+                                    os.path.expanduser('~'), cas_a_trieda.replace(":", "/")))
     if '-textBox-' in tags:
         canvas.bind_all("<Key>", keyPressed)
         binds.append("<Key>")
