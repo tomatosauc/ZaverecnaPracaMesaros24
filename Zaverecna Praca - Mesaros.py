@@ -1,5 +1,6 @@
 # Importovanie modulov
 import os
+import sys
 import tkinter
 from datetime import datetime
 from math import *
@@ -15,16 +16,13 @@ appState = "Main menu"
 actionBoxes = {}
 binds = []
 tabulka = []
+tabulkaOriginal = []
 textBox = ""
 target = False
 export = Image.new("RGB", (500, 720), "white")
 draw = ImageDraw.Draw(export)
 targetStudent = ""
-trieda = []
-mode = "database".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
-
-if mode == "Database":
-    import psycopg2 as db_connect
+mode = "local".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
 
 
 # Definícia funkcií
@@ -45,24 +43,30 @@ def _init():
 def canvasReset(appStateInternal="Main menu", addInfo=None):
     if addInfo is None:
         addInfo = ""
-    global canvas, tabulka, trieda
+    global canvas, tabulka, db_connect, tabulkaOriginal
     stop = False
     canvas.delete("all")
     canvas.pack_forget()
     match appStateInternal:
         case "Main menu":
-            canvas = tkinter.Canvas(width='300', height='350')
+            canvas = tkinter.Canvas(width='300', height='400')
             canvas.pack()
             canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
             actionBoxes.clear()
             create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
-            create_text_box(50, 250, "filePath-textBox-", sizeX=200, defaultText="Meno triedy", typedText=addInfo)
-            create_text_box(50, 300, "group-textBox-", sizeX=200, defaultText="Meno skupiny", typedText="")
+            create_button(50, 250, "localMode", text="Lokálny", textScale=0.8, sizeX=87.5, sizeY=25)
+            create_button(162.5, 250, "dbMode", text="Databáza", textScale=0.8, sizeX=87.5, sizeY=25)
+            if len(addInfo) < 2:
+                addInfo = ['', '']
+            create_text_box(50, 300, "filePath-textBox-", sizeX=200, defaultText="Meno triedy", typedText=addInfo[0])
+            create_text_box(50, 350, "group-textBox-", sizeX=200, defaultText="Meno skupiny", typedText=addInfo[1])
         case "Main App":
             canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
-            if addInfo is not None:
+            if addInfo is not None and addInfo[3] is None:
                 if mode == "Database":
+                    if 'psycopg2' not in sys.modules:
+                        import psycopg2 as db_connect
                     try:
                         databaza = db_connect.connect(database="ZasadaciPoriadok",
                                                       user="postgres",
@@ -70,7 +74,7 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                                       port=5432)
                         kurzor = databaza.cursor()
 
-                        if actionBoxes[addInfo[0]][1] == "":
+                        if actionBoxes[addInfo[1]][1] == "":
                             kurzor.execute("""SELECT "Meno a Priezvisko", "Skupina" FROM public."ZoznamZiakov"
                                                     WHERE "Trieda" = '{}' and "Zahranicie" = false 
                                                     ORDER BY "Meno a Priezvisko" ASC;""".format(
@@ -81,7 +85,6 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                                                                 ORDER BY "Meno a Priezvisko" ASC;""".format(
                                 actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()))
                         tabulka = kurzor.fetchall()
-                        trieda = [actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()]
 
                     except db_connect.OperationalError:
                         canvasReset(appStateInternal="Error", addInfo=["Pripojenie k databáze zlyhalo",
@@ -90,17 +93,31 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                                                        ""])
                         stop = True
                 else:
-                    tabulka = [('Brňáková Ema', 'Aj2, Nj2'), ('Drahoš Alex', 'Aj2'), ('Fajnor Ján', 'Aj2'),
-                               ('Fejda Marko', 'Aj1'), ('Filc Marian', 'Aj1'), ('Gižická Tereza', 'Aj1'),
-                               ('Golian Matej', 'Aj2'), ('Hitzingerová Silvia', 'Aj2'), ('Horská Barbora', 'Aj1'),
-                               ('Horská Veronika', 'Aj1'), ('Katrincová Tereza', 'Aj1'), ('Kekeši Filip', 'Aj1'),
-                               ('Kočan Maximilián', 'Aj2'), ('Lauko Pavol', 'Aj2'), ('Luknárová Hana', 'Aj1'),
-                               ('Melioris Mia', 'Aj1'), ('Mésároš Tomáš', 'Aj2'), ('Navarčíková Natália', 'Aj1'),
-                               ('Pavlíková Liana', 'Aj1'), ('Peschl Jakub', 'Aj2'), ('Pongrácová Petra Ella', 'Aj2'),
-                               ('Salner Leon', 'Aj1'), ('Skoček Ilja', 'Aj2'), ('Vajdová Ina', 'Aj1'),
-                               ('Zaťko Pavol', 'Aj2')]
+                    Nriadok = 0
+                    zahranicie = False
+                    try:
+                        subor = open(os.path.expanduser('~') + '/Downloads/zasadacie_poriadky/StudentLists/{}.tssl'.format(
+                            actionBoxes[addInfo[0]][1].capitalize()), 'r')
+                        meno = ''
+                        for riadok in subor:
+                            if Nriadok >= 0:
+                                if not " -info" in riadok:
+                                    meno = riadok.strip()
+                                elif 'Z' in riadok:
+                                    zahranicie = True
+                                else:
+                                    skupina = riadok.strip()[:3]
+                                    if zahranicie:
+                                        zahranicie = False
+                                        skupina += ' (Z)'
+                                    if actionBoxes[addInfo[1]][1] in skupina:
+                                        tabulka.append((meno, skupina))
+                            Nriadok += 1
+                    except FileNotFoundError:
+                        tabulka = []
             if not stop:
                 if tabulka != []:
+                    tabulkaOriginal = tabulka
                     actionBoxes.clear()
                     NZiakov = len(tabulka)
                     create_text_box(105, 10, "pocetStlpcov-textBox-", sizeX=40, sizeY=20, typedText='4')
@@ -109,15 +126,17 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                     typedText=str(ceil(NZiakov / int(actionBoxes["pocetStlpcov-textBox-"][1]))))
                     canvas.create_text(50, 48, text="Počet radov:")
                     canvas.create_line(155, 0, 155, 700, width=2)
-                    create_button(10, 640, 'export', sizeX=135, textScale=1.2, text="Export", textOptions="bold")
+                    create_button(10, 460, 'restart', sizeX=135, textScale=1.2, text="Späť", textOptions="bold")
+                    create_button(10, 520, 'add', sizeX=135, textScale=1.2, text="Pridať", textOptions="bold")
                     create_button(10, 580, 'regen', sizeX=135, textScale=1, text="Generovať znova",
                                   textOptions="bold")
+                    create_button(10, 640, 'export', sizeX=135, textScale=1.2, text="Export", textOptions="bold")
                     generateTable(tabulka.copy(), NZiakov)
                 else:
                     canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
                                                                    "Skúste to prosím znova, so správnym menom triedy",
                                                                    "reset",
-                                                                   actionBoxes[addInfo[0]][1]])
+                                                                   [actionBoxes[addInfo[0]][1],actionBoxes[addInfo[1]][1]]])
         case "Error":
             canvas = tkinter.Canvas(width='320', height='100')
             canvas.pack()
@@ -196,7 +215,7 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
 
 
 def executeBox(tags):
-    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export, trieda
+    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export, mode
     if binds != []:
         for bind in binds:
             canvas.unbind_all(bind)
@@ -206,9 +225,17 @@ def executeBox(tags):
     match tags:
         case 'startButton':
             appState = 'Main App'
-            canvasReset(appState, ['filePath-textBox-', 'group-textBox-', ''])
+            canvasReset(appState, ['filePath-textBox-', 'group-textBox-', '', None])
+        case 'localMode':
+            mode = 'Local'
+        case 'dbMode':
+            mode = 'Database'
         case 'quit':
             quit()
+        case 'restart':
+            appState = 'Main menu'
+            tabulka = []
+            canvasReset()
         case 'reset':
             appState = 'Main menu'
             canvasReset(appState, actionBoxes[tags][1])
