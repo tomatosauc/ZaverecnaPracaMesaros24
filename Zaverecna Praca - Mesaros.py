@@ -18,6 +18,7 @@ binds = []
 tabulka = []
 tabulkaOriginal = []
 textBox = ""
+trieda = ''
 target = False
 export = Image.new("RGB", (500, 720), "white")
 draw = ImageDraw.Draw(export)
@@ -43,7 +44,7 @@ def _init():
 def canvasReset(appStateInternal="Main menu", addInfo=None):
     if addInfo is None:
         addInfo = ""
-    global canvas, tabulka, db_connect, tabulkaOriginal
+    global canvas, tabulka, db_connect, tabulkaOriginal, trieda
     stop = False
     canvas.delete("all")
     canvas.pack_forget()
@@ -63,7 +64,7 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
         case "Main App":
             canvas = tkinter.Canvas(width='650', height='695')
             canvas.pack()
-            if addInfo is not None and addInfo[3] is None:
+            if addInfo is not None and addInfo[3]:
                 if mode == "Database":
                     if 'psycopg2' not in sys.modules:
                         import psycopg2 as db_connect
@@ -96,8 +97,9 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                     Nriadok = 0
                     zahranicie = False
                     try:
-                        subor = open(os.path.expanduser('~') + '/Downloads/zasadacie_poriadky/StudentLists/{}.tssl'.format(
-                            actionBoxes[addInfo[0]][1].capitalize()), 'r')
+                        subor = open(
+                            os.path.expanduser('~') + '/Downloads/zasadacie_poriadky/StudentLists/{}.tssl'.format(
+                                actionBoxes[addInfo[0]][1].capitalize()), 'r')
                         meno = ''
                         for riadok in subor:
                             if Nriadok >= 0:
@@ -107,17 +109,17 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                     zahranicie = True
                                 else:
                                     skupina = riadok.strip()[:3]
-                                    if zahranicie:
-                                        zahranicie = False
-                                        skupina += ' (Z)'
-                                    if actionBoxes[addInfo[1]][1] in skupina:
-                                        tabulka.append((meno, skupina))
+                                    if not zahranicie:
+                                        if actionBoxes[addInfo[1]][1] in skupina:
+                                            tabulka.append((meno, skupina))
+                                    zahranicie = False
                             Nriadok += 1
                     except FileNotFoundError:
                         tabulka = []
             if not stop:
                 if tabulka != []:
                     tabulkaOriginal = tabulka
+                    trieda = [actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()]
                     actionBoxes.clear()
                     NZiakov = len(tabulka)
                     create_text_box(105, 10, "pocetStlpcov-textBox-", sizeX=40, sizeY=20, typedText='4')
@@ -136,7 +138,8 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                     canvasReset(appStateInternal="Error", addInfo=["Trieda s takým menom neexistuje",
                                                                    "Skúste to prosím znova, so správnym menom triedy",
                                                                    "reset",
-                                                                   [actionBoxes[addInfo[0]][1],actionBoxes[addInfo[1]][1]]])
+                                                                   [actionBoxes[addInfo[0]][1],
+                                                                    actionBoxes[addInfo[1]][1]]])
         case "Error":
             canvas = tkinter.Canvas(width='320', height='100')
             canvas.pack()
@@ -144,6 +147,24 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
             canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial 18 bold")
             canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial 12")
             create_button(130, 65, str(addInfo[2]), sizeX=60, sizeY=25, text="Ok", textScale=1.25, moreInfo=addInfo[3])
+        case "Addition":
+            addList = [x for x in tabulkaOriginal if x not in tabulka]
+            height = len(addList) * 75 + 175
+            canvas = tkinter.Canvas(width=300, height=height)
+            canvas.pack()
+            actionBoxes.clear()
+            canvas.create_text(150, 30, text='Pridávanie žiakov', font="Arial 25 bold", anchor="center")
+            NStudents = 0
+            for student in addList:
+                tags = "addition-"+student[0].replace(" ", "_")
+                canvas.create_rectangle(10, NStudents*75+60, 290, NStudents*75+135, width=2, tags=tags)
+                canvas.create_text(20, NStudents*75+70, text=student[0], anchor="nw", font="Arial 20 bold", tags=tags+"_text")
+                canvas.create_text(280, NStudents*75+125, text=student[1], anchor="se", font="Arial 18", tags=tags+"_text")
+                actionBoxes.update(
+                    {tags: [[20, NStudents*75+60, 280, 75, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")], student]}
+                )
+                NStudents += 1
+            create_button(50, height - 100, "table", sizeX=200, sizeY=75, text="Späť", textScale=2, textOptions='bold')
     triggerDefinition()
 
 
@@ -215,7 +236,7 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
 
 
 def executeBox(tags):
-    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export, mode
+    global canvas, binds, appState, textBox, tabulka, target, targetStudent, export, mode, trieda
     if binds != []:
         for bind in binds:
             canvas.unbind_all(bind)
@@ -225,22 +246,25 @@ def executeBox(tags):
     match tags:
         case 'startButton':
             appState = 'Main App'
-            canvasReset(appState, ['filePath-textBox-', 'group-textBox-', '', None])
+            canvasReset(appState, ['filePath-textBox-', 'group-textBox-', '', True])
         case 'localMode':
             mode = 'Local'
         case 'dbMode':
             mode = 'Database'
         case 'quit':
             quit()
+        case 'reset':
+            appState = 'Main menu'
+            canvasReset(appState, actionBoxes[tags][1])
         case 'restart':
             appState = 'Main menu'
             tabulka = []
             canvasReset()
-        case 'reset':
-            appState = 'Main menu'
-            canvasReset(appState, actionBoxes[tags][1])
         case 'regen':
             generateTable(tabulka.copy(), len(tabulka))
+        case 'add':
+            appState = 'Addition'
+            canvasReset(appState)
         case 'export':
             if not os.path.exists(os.path.expanduser('~') + "/Downloads/zasadacie_poriadky"):
                 os.mkdir(os.path.expanduser('~') + "/Downloads/zasadacie_poriadky")
@@ -254,18 +278,15 @@ def executeBox(tags):
             messagebox.showinfo(parent=canvas, title="Zasadací poriadok - export",
                                 message="Zasadací poriadok exportovaný do:\n{}/Downloads/zasadacie_poriadky/zasadaci_poriadok{}.png".format(
                                     os.path.expanduser('~'), cas_a_trieda.replace(":", "/")))
+        case 'table':
+            appState = "Main App"
+            canvasReset(appState, ['', '', '', False])
     if '-textBox-' in tags:
         canvas.bind_all("<Key>", keyPressed)
         binds.append("<Key>")
     elif 'class-' in tags:
         if "_close" in tags:
             tags = tags.removesuffix("_close")
-            canvas.delete(tags)
-            canvas.delete(tags + "_text")
-            canvas.delete(tags + "_text2")
-            canvas.delete(tags + "_close")
-            canvas.delete(tags + "_close_text")
-            canvas.delete(tags + "_close_text2")
             tabulka = [x for x in tabulka if x != (tags.removeprefix("class-").replace("_", " "), actionBoxes[tags][1])]
             generateTable(tabulka.copy(), len(tabulka))
         else:
@@ -275,6 +296,9 @@ def executeBox(tags):
             else:
                 targetStudent = tags
                 target = True
+    elif 'addition-' in tags:
+        tabulka.append(actionBoxes[tags][1])
+        canvasReset(appState, ['', '', '', False])
 
 
 def keyPressed(event):
