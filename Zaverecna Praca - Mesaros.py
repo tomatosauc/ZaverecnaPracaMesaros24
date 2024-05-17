@@ -12,6 +12,8 @@ from PIL import Image, ImageDraw, ImageFont
 # Definícia globálnych premenných
 root = tkinter.Tk()
 canvas = tkinter.Canvas()
+export = Image.new("RGB", (500, 720), "white")
+draw = ImageDraw.Draw(export)
 appState = "Main menu"
 actionBoxes = {}
 binds = []
@@ -20,17 +22,20 @@ tabulkaOriginal = []
 textBox = ""
 trieda = ''
 target = False
-export = Image.new("RGB", (500, 720), "white")
-draw = ImageDraw.Draw(export)
 targetStudent = ""
+OS = os.name
+scale = 1
 mode = "local".capitalize()  # local pre lokalny testovaci mod a database pre mod prace s databazou
 
 
 # Definícia funkcií
 def _init():
-    global canvas, appState
+    global canvas, appState, scale
     # Reset premenných
     appState = "Main menu"
+
+    if OS == "nt":
+        scale = 0.75
 
     # Nastavenie okna
     root.resizable(False, False)
@@ -52,7 +57,7 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
         case "Main menu":
             canvas = tkinter.Canvas(width='300', height='400')
             canvas.pack()
-            canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial 30 bold", justify="center")
+            canvas.create_text(150, 75, text="Program na\nzasadací poriadok", font="Arial {} bold".format(round(30*scale)), justify="center")
             actionBoxes.clear()
             create_button(50, 150, "startButton", text="Štart", textOptions="bold", textScale=2, sizeX=200, sizeY=75)
             create_button(50, 250, "localMode", text="Lokálny", textScale=0.8, sizeX=87.5, sizeY=25)
@@ -98,8 +103,8 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                     zahranicie = False
                     try:
                         subor = open(
-                            os.path.expanduser('~') + '/Downloads/zasadacie_poriadky/StudentLists/{}.tssl'.format(
-                                actionBoxes[addInfo[0]][1].capitalize()), 'r')
+                            os.path.expanduser('~') + '/zasadacie_poriadky/StudentLists/{}.tssl'.format(
+                                actionBoxes[addInfo[0]][1].capitalize()), 'r', encoding = 'utf-8')
                         meno = ''
                         for riadok in subor:
                             if Nriadok >= 0:
@@ -110,16 +115,16 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
                                 else:
                                     skupina = riadok.strip()[:3]
                                     if not zahranicie:
-                                        if actionBoxes[addInfo[1]][1] in skupina:
+                                        if actionBoxes[addInfo[1]][1].capitalize() in skupina:
                                             tabulka.append((meno, skupina))
                                     zahranicie = False
                             Nriadok += 1
                     except FileNotFoundError:
                         tabulka = []
+                trieda = [actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()]
             if not stop:
                 if tabulka != []:
                     tabulkaOriginal = tabulka
-                    trieda = [actionBoxes[addInfo[0]][1].capitalize(), actionBoxes[addInfo[1]][1].capitalize()]
                     actionBoxes.clear()
                     NZiakov = len(tabulka)
                     create_text_box(105, 10, "pocetStlpcov-textBox-", sizeX=40, sizeY=20, typedText='4')
@@ -144,8 +149,8 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
             canvas = tkinter.Canvas(width='320', height='100')
             canvas.pack()
             actionBoxes.clear()
-            canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial 18 bold")
-            canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial 12")
+            canvas.create_text(165, 20, text=str(addInfo[0]), font="Arial {} bold".format(round(18 * scale)))
+            canvas.create_text(165, 45, text=str(addInfo[1]), font="Arial {}".format(round(12 * scale)))
             create_button(130, 65, str(addInfo[2]), sizeX=60, sizeY=25, text="Ok", textScale=1.25, moreInfo=addInfo[3])
         case "Addition":
             addList = [x for x in tabulkaOriginal if x not in tabulka]
@@ -153,13 +158,13 @@ def canvasReset(appStateInternal="Main menu", addInfo=None):
             canvas = tkinter.Canvas(width=300, height=height)
             canvas.pack()
             actionBoxes.clear()
-            canvas.create_text(150, 30, text='Pridávanie žiakov', font="Arial 25 bold", anchor="center")
+            canvas.create_text(150, 30, text='Pridávanie žiakov', font="Arial {} bold".format(round(25 * scale)), anchor="center")
             NStudents = 0
             for student in addList:
                 tags = "addition-"+student[0].replace(" ", "_")
                 canvas.create_rectangle(10, NStudents*75+60, 290, NStudents*75+135, width=2, tags=tags)
-                canvas.create_text(20, NStudents*75+70, text=student[0], anchor="nw", font="Arial 20 bold", tags=tags+"_text")
-                canvas.create_text(280, NStudents*75+125, text=student[1], anchor="se", font="Arial 18", tags=tags+"_text")
+                canvas.create_text(20, NStudents*75+70, text=student[0], anchor="nw", font="Arial {} bold".format(round(20 * scale)), tags=tags+"_text")
+                canvas.create_text(280, NStudents*75+125, text=student[1], anchor="se", font="Arial {}".format(round(18 * scale)), tags=tags+"_text")
                 actionBoxes.update(
                     {tags: [[20, NStudents*75+60, 280, 75, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")], student]}
                 )
@@ -172,7 +177,7 @@ def create_button(x, y, tags, sizeX=100, sizeY=50, text="", textScale=1.0, textO
     global actionBoxes
     canvas.create_rectangle(x, y, x + sizeX, y + sizeY, tags=tags, width=2)
     canvas.create_text(x + (sizeX / 2), y + (sizeY / 2), text=text,
-                       font="Arial {} {}".format(round(15 * textScale), textOptions), tags=tags + "_text")
+                       font="Arial {} {}".format(round(15 * textScale * scale), textOptions), tags=tags + "_text")
     actionBoxes.update(
         {tags: [[x, y, sizeX, sizeY, canvas.itemcget(tags, "fill"), canvas.itemcget(tags + "_text", "fill")],
                 moreInfo]})
@@ -180,7 +185,7 @@ def create_button(x, y, tags, sizeX=100, sizeY=50, text="", textScale=1.0, textO
 
 def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText="", typedText=""):
     global actionBoxes
-    canvas.create_rectangle(x, y, x + sizeX, y + sizeY, fill="#808080", width=2, tags=tags)
+    canvas.create_rectangle(x, y, x + sizeX, y + sizeY, fill="#999999", width=2, tags=tags)
     if typedText == "":
         canvas.create_text(x + (sizeX / 2), y + (sizeY / 2), text=defaultText, tags=tags + "_text", justify="left")
     else:
@@ -192,7 +197,10 @@ def create_text_box(x, y, tags, sizeX=100, sizeY=25, defaultText="", typedText="
 
 def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", position=""):
     global draw
-    font = ImageFont.truetype("Arial.ttf")
+    if OS == 'posix':
+        font = ImageFont.truetype("Arial.ttf")
+    else:
+        font = ImageFont.truetype("arial.ttf")
     groups = groups.split(", ")
     group = groups[0]
     if len(groups) > 1:
@@ -210,9 +218,9 @@ def create_student(x, y, tags, sizeX=100, sizeY=100, name="", groups="", positio
         sizeText = sizeX
     canvas.create_rectangle(x, y, x + sizeX, y + sizeY, tags=tagName, width=2)
     canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 5), text=name, tags=tagName + '_text',
-                       justify="center", font="Arial {}".format(str(round((sizeText / 3) / 2.25))))
+                       justify="center", font="Arial {}".format(str(round((sizeText / 3) / 2.25 * scale))))
     canvas.create_text(round(x + (sizeX / 2)), round(y + (sizeY / 12) * 10), text=group, tags=tagName + '_text2',
-                       font="Arial {}".format(str(round((sizeText / 3) / 2.75))))
+                       font="Arial {}".format(str(round((sizeText / 3) / 2.75 * scale))))
     canvas.create_rectangle(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
                             y + sizeY / 9 + sizeText / 9, outline='', tags=tagName + '_close')
     canvas.create_line(x + sizeX - sizeX / 9, y + sizeY / 9, x + sizeX - sizeX / 9 - sizeText / 9,
@@ -266,18 +274,18 @@ def executeBox(tags):
             appState = 'Addition'
             canvasReset(appState)
         case 'export':
-            if not os.path.exists(os.path.expanduser('~') + "/Downloads/zasadacie_poriadky"):
-                os.mkdir(os.path.expanduser('~') + "/Downloads/zasadacie_poriadky")
+            if not os.path.exists(os.path.expanduser('~') + "/zasadacie_poriadky"):
+                os.mkdir(os.path.expanduser('~') + "/zasadacie_poriadky")
             cas = datetime.now()
             cas_a_trieda = cas.strftime("-%d:%m:%Y")
             for element in trieda:
                 if element != '':
                     cas_a_trieda += "-" + element
             export.save(
-                "{}/Downloads/zasadacie_poriadky/zasadaci_poriadok{}.png".format(os.path.expanduser('~'), cas_a_trieda))
+                "{}/zasadacie_poriadky/zasadaci_poriadok{}.png".format(os.path.expanduser('~'), cas_a_trieda.replace(":", ";")))
             messagebox.showinfo(parent=canvas, title="Zasadací poriadok - export",
-                                message="Zasadací poriadok exportovaný do:\n{}/Downloads/zasadacie_poriadky/zasadaci_poriadok{}.png".format(
-                                    os.path.expanduser('~'), cas_a_trieda.replace(":", "/")))
+                                message="Zasadací poriadok exportovaný do:\n{}/zasadacie_poriadky/zasadaci_poriadok{}.png".format(
+                                    os.path.expanduser('~'), cas_a_trieda.replace(":", ";")))
         case 'table':
             appState = "Main App"
             canvasReset(appState, ['', '', '', False])
@@ -303,7 +311,7 @@ def executeBox(tags):
 
 def keyPressed(event):
     global textBox
-    if event.char != "":
+    if event.char != "" and not '\x08' in event.char and not '\r' in event.char:
         char = event.char
         actionBoxes.update({textBox: [actionBoxes[textBox][0], actionBoxes[textBox][1] + char]})
         canvas.itemconfig(textBox + "_text", text=actionBoxes[textBox][1])
